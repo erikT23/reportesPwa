@@ -36,7 +36,7 @@ self.addEventListener("fetch", (event) => {
   // 1. cache only
   // event.respondWith(caches.match(event.request));
   //2. cache with network fallback
-  const source = caches.match(event.request).then((response) => {
+  /*const source = caches.match(event.request).then((response) => {
     if (response) return response;
     return fetch(event.request).then((newResponse) => {
       caches.open(DYNAMIC).then((cache) => {
@@ -45,7 +45,32 @@ self.addEventListener("fetch", (event) => {
       return newResponse.clone();
     });
   });
-  event.respondWith(source);
+  event.respondWith(source);*/
+  //3. network with cache fallback
+  /*const source = fetch(event.request)
+    .then((res) => {
+      if (!res) throw Error("not found");
+      //revisar si el recurso ya existe en cache
+      caches.open(DYNAMIC).then((cache) => {
+        cache.put(event.request, res);
+      });
+      return res.clone();
+    })
+    .catch((err) => {
+      return caches.match(event.request);
+    });
+  event.respondWith(source);*/
+  //4. cache with network update
+  // rendimiento critico, si es bajo usar esta estrategia, desventaja, toda la aplicacion esta un paso atras
+  if (e.request.url.includes("bootstrap"))
+    return e.respondWith(caches.match(e.request));
+  const source = caches.open(STATIC).then((cache) => {
+    fetch(e.request).then((res) => {
+      cache.put(e.request, res);
+    });
+    return cache.match(e.request);
+  });
+  e.respondWith(source);
 });
 
 self.addEventListener("push", (event) => {
